@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="HeatMap.css">
+<body>
+<script src="../lib/d3.v3.min.js"></script>
+<script>
+var margin = {top: 20, right: 90, bottom: 30, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var parseDate = d3.time.format("%Y-%m-%d").parse,
+    formatDate = d3.time.format("%b %d");
+
+var x = d3.scale.linear().range([0, width]),
+    y = d3.scale.linear().range([height, 0]),
+    z = d3.scale.linear().range(["white", "red"]);
+var xStep = 0.92,
+    yStep = 0.92;
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right + 100)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append("text")
+    .attr("class", "heading")
+    .attr("x", width/2 - 5)
+    .attr("y", - 8)
+    .text("HeatMap Water Usage")
+
+d3.csv("heatmap.csv", function(error, buckets) {
+  if (error) throw error;
+  var data = [];
+  buckets.forEach(function(d) {
+    d["Zip Code"] = +d["Zip Code"];
+    data.push(d["Zip Code"])
+  })
+  update(90077);
+
+  var select = d3.select('body')
+    .append('select')
+    .attr("x", width)
+    .attr("y", 5)
+    .on('change',onchange)
+
+  var options = select
+    .selectAll('option')
+    .data(d3.set(data).values()).enter()
+    .append('option')
+    .text(function (d) { return d; })
+
+  function onchange() {
+    selectValue = d3.select('select').property('value')
+    update(selectValue)
+  };
+
+  function update(selectValue){
+    svg.selectAll(".tile").remove();
+    svg.selectAll(".legend").remove();
+    var filtered_data = []
+    buckets.forEach(function(d) {
+    d["Zip Code"] = +d["Zip Code"];
+    if (d["Zip Code"] == selectValue) {
+      temp_obj = {
+        Zip: +d["Zip Code"],
+        month: +d.Month,
+        year: +d.Year,
+        power: +d.Power
+      }
+      filtered_data.push(temp_obj);
+    }
+  });
+  // Compute the scale domains.
+  var extentY = d3.extent(filtered_data, function(d) { return d.year; })
+  var extentZ = d3.extent(filtered_data, function(d) { return d.power; })
+  var a = [1,2,3,4,5,6,7,8,9,10,11,12]
+  var months = ["Jan", "Feb", "March", "April", "March", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"]
+  x.domain(d3.extent(filtered_data, function(d) { return d.month; }));
+  y.domain([extentY[0], extentY[1]]);
+  z.domain([extentZ[0], extentZ[1]]);
+
+  x.domain([x.domain()[0], +x.domain()[1] + xStep]);
+  y.domain([y.domain()[0], y.domain()[1] + yStep]);
+
+  // Display the tiles for each non-zero bucket.
+  svg.selectAll(".tile")
+      .data(filtered_data)
+    .enter().append("rect")
+      .attr("class", "tile")
+      .attr("x", function(d) { return x(d.month); })
+      .attr("y", function(d) { return y(d.year + yStep); })
+      .attr("width", x(xStep) - x(0))
+      .attr("height", y(0) - y(yStep))
+      .style("fill", function(d) { return z(d.power); });
+
+      svg.append("text")
+      .attr("class", "label")
+      .attr("x", width + 20)
+      .attr("y", 10)
+      .attr("dy", ".35em")
+      .text("kWh");
+      
+  // Add a legend for the color values.
+  var legend = svg.selectAll(".legend")
+      .data(z.ticks(6).slice(1).reverse())
+    .enter().append("g")
+      .attr("class", "legend")
+      .attr("transform", function(d, i) { return "translate(" + (width + 20) + "," + (20 + i * 20) + ")"; });
+
+  legend.append("rect")
+      .attr("class", "tile")
+      .style("stroke", "white")
+      .style("stroke-width", 3)
+      .attr("width", 20)
+      .attr("height", 20)
+      .style("fill", z);
+
+  legend.append("text")
+      .attr("x", 26)
+      .attr("y", 10)
+      .attr("dy", ".35em")
+      .text(String);
+
+  // Add an x-axis with label.
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.svg.axis().scale(x).tickValues(a).tickFormat(function(d) { 
+        if (d === 1) {
+          return "Jan";
+        }
+        if (d === 2) {
+          return "Feb";
+        } 
+        if (d === 3) {
+          return "Mar";
+        }
+        if (d === 4) {
+          return "Apr";
+        }
+        if (d === 5) {
+          return "May";
+        }
+        if (d === 6) {
+          return "Jun";
+        }
+        if (d === 7) {
+          return "Jul";
+        }
+        if (d === 8) {
+          return "Aug";
+        }
+        if (d === 9) {
+          return "Sep";
+        }
+        if (d === 10) {
+          return "Oct";
+        }
+        if (d === 11) {
+          return "Nov";
+        }
+        if (d === 12) {
+          return "Dec";
+        }
+
+      }))
+    .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", 20)
+      .attr("text-anchor", "middle")
+      .text("Month");
+
+  // Add a y-axis with label.
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left"))
+    .append("text")
+      .attr("class", "label")
+      .attr("y", -20)
+      .attr("dy", ".71em")
+      .attr("text-anchor", "middle")
+      .text("Year");
+  }
+})
+</script>

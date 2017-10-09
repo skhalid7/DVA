@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Bar Chart with Manipulation</title>
+    <style>
+    .axis {
+        font: 15px sans-serif;
+    }
+    .axis path, .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+    .y.axis path {
+        display: none;
+    }
+    .subset {
+        font: 10px sans-serif;
+    }
+    text {
+        font: 10px sans-serif;
+        color: black;
+    }
+    </style>
+    <script src="../lib/d3.v3.min.js"></script>
+</head>
+<body>
+
+</body>
+<script>
+var margin = {
+    top: 20,
+    right: 20,
+    bottom: 30,
+    left: 40
+},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+data = [{"product":"Product A","freq":{"Q1":576, "Q2":1176, "Q3":1009, "Q4":494}},
+{"product":"Product B","freq":{"Q1":959, "Q2":1653, "Q3":1999, "Q4":697}},
+{"product":"Product C","freq":{"Q1":3210, "Q2":4220, "Q3":1648, "Q4":919}},
+{"product":"Product D","freq":{"Q1":589, "Q2":2043, "Q3":1153, "Q4":911}},
+{"product":"Product E","freq":{"Q1":2599, "Q2":1333, "Q3":818, "Q4":1713}},
+{"product":"Product F","freq":{"Q1":431, "Q2":324, "Q3":715, "Q4":421}},
+{"product":"Product G","freq":{"Q1":1457, "Q2":2557, "Q3":2245, "Q4":762}},
+{"product":"Product H","freq":{"Q1":2573, "Q2":3357, "Q3":1598, "Q4":1287}}]
+aggregate = []
+data.forEach(function(d) {
+    aggregate.push(d.freq.Q1 + d.freq.Q2 + d.freq.Q3 + d.freq.Q4)
+})
+
+var xscale = d3.scale.linear()
+        .domain([d3.min(aggregate), d3.max(aggregate)])
+        .range([margin.left, 960 - margin.left - margin.right]);
+
+var yscale = d3.scale.linear()
+            .domain([0, aggregate.length])
+            .range([0, height])
+
+barHeight = (height - 40)/ aggregate.length
+miniDataSet = [] 
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var bar = svg.selectAll("g")
+        .data(data)
+        .enter()
+        .append("g")
+        .attr("transform", function(d, i) {
+                return "translate(" + margin.left + "," + (i * (barHeight + 10) + 10) + ")";
+        })
+
+        bar.append("rect")
+        .attr("height", barHeight)
+        .attr("x", 50)
+        .attr("width", function(d) {
+            return xscale(d3.sum([d.freq.Q1, d.freq.Q2, d.freq.Q3, d.freq.Q4]))
+        })
+        .attr("fill", "#ccc")
+        .on("mouseover", function(d){
+            d3.select(this).transition().attr({fill: "red"})
+            miniDataSet = [d.freq.Q1, d.freq.Q2, d.freq.Q3, d.freq.Q4]
+            update(miniDataSet)
+        })
+        .on("mouseout", function(d) {
+            d3.select(this).transition().attr({fill: "#ccc"})
+            d3.selectAll(".subset").remove()  
+        })
+
+    bar.append("text")
+        .attr("y", barHeight/2)
+        .attr("x", 0)
+        .text(function(d){
+            return d.product
+        })
+    bar.append("text")
+        .attr("y", barHeight/2)
+        .attr("x", 56)
+        .text(function(d) {
+            return ("$" + d3.sum([d.freq.Q1, d.freq.Q2, d.freq.Q3, d.freq.Q4]))
+        })
+
+    miniBarHeight = barHeight/2
+    miniXscale = d3.scale.log()
+        .domain([300, 2500])
+        .range([0, 100]);
+
+function update(miniDataSet){
+        miniRect = svg.selectAll(".subset")
+                    .data(miniDataSet)
+                    .enter()
+                    .append("g")
+
+        miniRect.append("rect")
+                .attr("class", "subset")
+                .attr("fill", "steelblue")
+                .attr("height", barHeight/2)
+                .attr("width", function(d) {
+                    console.log("d: " + d)
+                    console.log(miniXscale(d))
+                    return miniXscale(d)
+                })
+                .attr("transform", function(d, i) { return "translate(" + 800 + "," + ((i * 30) + 5) + ")"; })
+
+        miniRect.append("text")
+            .attr("fill", "black")
+            .attr("class", "subset")
+            .text(function(d, i){
+                if (i == 0) {
+                    return "Q1"
+                } else if(i == 1) {
+                    return "Q2"
+                } else if(i ==  2) {
+                    return "Q3"
+                } else if(i == 3) {
+                    return "Q4"
+                }
+            })
+            .attr("transform", function(d, i) { return "translate(" + 780 + "," + ((i * 30) + 20) + ")"; })
+
+        miniRect.append("text")
+            .attr("fill", "black")
+            .attr("class", "subset")
+            .text(function(d) {
+                return ("$" + d)
+            })
+            .attr("transform", function(d, i) { return "translate(" + 820 + "," + ((i * 30) + 20) + ")"; })
+}
+</script>
+</html>
