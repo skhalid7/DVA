@@ -1,5 +1,6 @@
 # DVA Project Ren-Turo
 Given a budget and location predicts the top 3 cars which if rented out to customers will produce the most revenue.
+Predictions are based off of on previous car rental data on Turo.com
 
 Car features and number of times a car was rented out was scraped from Turo.com (scrape.py).
 The average price of the car was scraped from Autotrader.com (GetUsedCarProces.py).
